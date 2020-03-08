@@ -1,0 +1,9 @@
+Description: >
+  Favio Tejada / Xebia
+  This si an example to run up servers and set up security groups
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+Resources:
