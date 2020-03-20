@@ -7,6 +7,7 @@ Parameters:
     Description: An environment name that will be prefixed to resource names
     Type: String
 Resources:
+# This is the load balancer security group to allow http incoming requests from the internet
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -24,6 +25,7 @@ Resources:
         FromPort: 80
         ToPort: 80
         CidrIp: 0.0.0.0/0
+# This is server security group config, we will only enable SSH and 8080 (since will be exposing tomcat on that port)
   WebServerSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -45,12 +47,14 @@ Resources:
         FromPort: 0
         ToPort: 65535
         CidrIp: 0.0.0.0/0
+# This is the server (instance) installation 
   WebAppLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash
+          #!/bin/bash -x
+          exec > /tmp/part-001.log 2>&1
           # Install docker
           apt-get update
           apt-get install -y apt-transport-https ca-certificates curl software-properties-common
@@ -63,8 +67,11 @@ Resources:
           apt-get install -y docker-ce
           usermod -aG docker ubuntu
           docker run -p 8080:8080 tomcat:8.0
-      ImageId: ami-005bdb005fb00e791
-      KeyName: that-one
+      ImageId: ami-0d1cd67c26f5fca19
+      # For the other images apt-get is not compatible (only with REHT)
+      # ImageId: ami-005bdb005fb00e791
+      # ImageId: ami-0ce21b51cb31a48b8
+      KeyName: private-server-devops-key
       SecurityGroups:
       - Ref: WebServerSecGroup
       InstanceType: t3.medium
@@ -72,6 +79,7 @@ Resources:
       - DeviceName: "/dev/sdk"
         Ebs:
           VolumeSize: '10'
+# This section is essential to link the installed instance to a subnet, using a criteria of auto-scaling
   WebAppGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
